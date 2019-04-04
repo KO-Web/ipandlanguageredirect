@@ -42,6 +42,6 @@ gulp.task('js', function() {
  *         Watch Tasks
  *********************************/
 gulp.task('default', function() {
-	gulp.watch(__dirname + '/../Sass/*.scss', ['css']);
-	gulp.watch(__dirname + '/../JavaScripts/*.js', ['js']);
+	gulp.watch(__dirname + '/../Sass/*.scss', gulp.series('css'));
+	gulp.watch(__dirname + '/../JavaScripts/*.js', gulp.series('js'));
 });

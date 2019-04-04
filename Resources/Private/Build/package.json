@@ -3,6 +3,9 @@
   "description": "TYPO3 frontend redirect depending on browser language and ip-address",
   "author": "in2code",
   "private": true,
+  "scripts": {
+    "gulp": "gulp"
+  },
   "devDependencies": {
     "gulp": "^4.0.0",
     "gulp-plumber": "^1.0.1",
