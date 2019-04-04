@@ -330,7 +330,7 @@ function IpandlanguageredirectFrontend() {
 	 * @returns {object}
 	 */
 	var getParametersForAjaxCall = function() {
-		return {
+		var allParameters = {
 			'tx_ipandlanguageredirect_pi1[browserLanguage]': getBrowserLanguage(),
 			'tx_ipandlanguageredirect_pi1[ipAddress]': getIpAddress(),
 			'tx_ipandlanguageredirect_pi1[referrer]': getReferrer(),
@@ -339,6 +339,16 @@ function IpandlanguageredirectFrontend() {
 			'tx_ipandlanguageredirect_pi1[countryCode]': getCountryCode(),
 			'tx_ipandlanguageredirect_pi1[domain]': getDomain()
 		};
+		var parameters = {}, key;
+
+		// Remove empty parameters before sending AJAX request, they all have default values in controller.
+		for (key in allParameters) {
+			if (allParameters[key] !== '') {
+				parameters[key] = allParameters[key];
+			}
+		}
+
+		return parameters;
 	};
 
 	/**
@@ -362,8 +372,8 @@ function IpandlanguageredirectFrontend() {
 	};
 
 	/**
-	 * Get first part of first Browserlanguage directly from browser
-	 * Return "de" from "de-DE,en-EN"
+	 * Get lowercase browser language directly from browser.
+	 * Return "de-de" from "de-DE,en-EN"
 	 *
 	 * @returns {string}
 	 */
@@ -372,8 +382,11 @@ function IpandlanguageredirectFrontend() {
 		if (navigator.languages !== undefined && navigator.languages[0] !== undefined) {
 			userLang = navigator.languages[0];
 		}
-		var parts = userLang.split('-');
-		return parts[0];
+		if (typeof navigator.language === 'string') {
+			userLang = userLang.toLowerCase();
+		}
+
+		return userLang;
 	};
 
 	/**
