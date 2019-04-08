@@ -189,8 +189,7 @@ class RedirectService
      */
     protected function getBestMatchingRootPage()
     {
-        $bestConfiguration = $this->getBestConfiguration();
-        if ($bestConfiguration !== null) {
+        if ($this->getBestConfiguration() !== null) {
             return $this->getBestConfiguration()->getRootPage();
         }
         return 1;
@@ -201,8 +200,7 @@ class RedirectService
      */
     protected function getBestMatchingLanguageParameter()
     {
-        $bestConfiguration = $this->getBestConfiguration();
-        if ($bestConfiguration !== null) {
+        if ($this->getBestConfiguration() !== null) {
             return $this->getBestConfiguration()->getLanguageParameter();
         }
         return 0;
@@ -215,16 +213,14 @@ class RedirectService
     {
         if ($this->bestConfiguration === null) {
             $configurationSet = ObjectUtility::getObjectManager()->get(ConfigurationSet::class, $this->configuration);
-            $configurationSet->calculateQuantifiers($this->browserLanguage, $this->countryCode, $this->domain);
-            $bestConfiguration = $configurationSet->getBestFittingConfiguration();
-            $this->bestConfiguration = $bestConfiguration;
-            if ($bestConfiguration === null) {
+            $configurationSet->calculateQuantifiers($this->browserLanguage, $this->countryCode, $this->domain, $this->languageUid);
+            $this->bestConfiguration = $configurationSet->getBestFittingConfiguration();
+            if ($this->bestConfiguration === null) {
                 $this->setDeactivated();
             }
-        } else {
-            $bestConfiguration = $this->bestConfiguration;
         }
-        return $bestConfiguration;
+
+        return $this->bestConfiguration;
     }
 
     /**

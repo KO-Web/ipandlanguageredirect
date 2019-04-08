@@ -24,9 +24,9 @@ function IpandlanguageredirectFrontend() {
 	var showSuggestClassname = 'fadein';
 
 	/**
-	 * @type {{r: number}}
+	 * @type {{}}
 	 */
-	var alreadyRedirectedParameter = {r: 1};
+	var alreadyRedirectedParameter = {};
 
 	/**
 	 * If cookieMode is different to "permanent", cookie will be deleted with browserclose.
@@ -181,11 +181,17 @@ function IpandlanguageredirectFrontend() {
 	 * @param jsonObject
 	 */
 	var doAction = function(jsonObject) {
-		if (jsonObject.activated && Array.isArray(jsonObject.events)) {
+		if (Array.isArray(jsonObject.events)) {
 			// iterate through events
 			for (var key in jsonObject.events) {
-				if (jsonObject.events.hasOwnProperty(key)) {
+				if (jsonObject.activated && jsonObject.events.hasOwnProperty(key)) {
 					that[jsonObject.events[key] + 'Event'](jsonObject);
+				} else if (jsonObject.events[key] === 'redirect') {
+					/*
+					 * If a redirect is configured, but not executed for reasons, everything is ok and the redirect
+					 * should not be executed at any later time, even if user manually switches to other language.
+					 */
+					setDisableRedirectCookie();
 				}
 			}
 		}
@@ -324,7 +330,7 @@ function IpandlanguageredirectFrontend() {
 	 * @returns {object}
 	 */
 	var getParametersForAjaxCall = function() {
-		return {
+		var allParameters = {
 			'tx_ipandlanguageredirect_pi1[browserLanguage]': getBrowserLanguage(),
 			'tx_ipandlanguageredirect_pi1[ipAddress]': getIpAddress(),
 			'tx_ipandlanguageredirect_pi1[referrer]': getReferrer(),
@@ -333,6 +339,16 @@ function IpandlanguageredirectFrontend() {
 			'tx_ipandlanguageredirect_pi1[countryCode]': getCountryCode(),
 			'tx_ipandlanguageredirect_pi1[domain]': getDomain()
 		};
+		var parameters = {}, key;
+
+		// Remove empty parameters before sending AJAX request, they all have default values in controller.
+		for (key in allParameters) {
+			if (allParameters[key] !== '') {
+				parameters[key] = allParameters[key];
+			}
+		}
+
+		return parameters;
 	};
 
 	/**
@@ -356,8 +372,8 @@ function IpandlanguageredirectFrontend() {
 	};
 
 	/**
-	 * Get first part of first Browserlanguage directly from browser
-	 * Return "de" from "de-DE,en-EN"
+	 * Get lowercase browser language directly from browser.
+	 * Return "de-de" from "de-DE,en-EN"
 	 *
 	 * @returns {string}
 	 */
@@ -366,8 +382,11 @@ function IpandlanguageredirectFrontend() {
 		if (navigator.languages !== undefined && navigator.languages[0] !== undefined) {
 			userLang = navigator.languages[0];
 		}
-		var parts = userLang.split('-');
-		return parts[0];
+		if (typeof navigator.language === 'string') {
+			userLang = userLang.toLowerCase();
+		}
+
+		return userLang;
 	};
 
 	/**
