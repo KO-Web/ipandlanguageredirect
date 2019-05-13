@@ -30,11 +30,6 @@ class ConfigurationSet
     protected $rawRedirectConfiguration = [];
 
     /**
-     * @var int
-     */
-    protected $partialOrFullMatchOnSameLanguageUid = 0;
-
-    /**
      * @param array $configuration
      */
     public function __construct(array $configuration)
@@ -53,29 +48,37 @@ class ConfigurationSet
                 $this->addConfiguration($configuration);
             }
         }
-        if (isset($this->rawQuantifierConfiguration['browserLanguage']['partialOrFullMatchOnSameLanguageUid'])
-            && (int)$this->rawQuantifierConfiguration['browserLanguage']['partialOrFullMatchOnSameLanguageUid'] > 0
-        ) {
-            $this->partialOrFullMatchOnSameLanguageUid = (int)$this->rawQuantifierConfiguration['browserLanguage']['partialOrFullMatchOnSameLanguageUid'];
-        }
     }
 
     /**
      * @param string $browserLanguage
      * @param string $countryCode
      * @param string $domain
-     * @param int $currentLanguage
      * @return void
      */
-    public function calculateQuantifiers(string $browserLanguage = '', string $countryCode = '', string $domain = '', $currentLanguage = -2)
+    public function calculateQuantifiers(string $browserLanguage = '', string $countryCode = '', string $domain = '')
     {
         $configurations = $this->getConfigurations();
         foreach ($configurations as $configuration) {
-            $browserQuantifier = $this->getLanguageQuantifier(
-                $configuration,
-                $browserLanguage,
-                $currentLanguage
+            $browserQuantifier = $this->getQuantifier(
+                'browserLanguage',
+                $configuration->getBrowserLanguages(),
+                $browserLanguage
             );
+
+            /**
+             * Second chance:
+             * If user has configured language with country (e.g. "de-AT"),
+             * but configuration contains only simple language "de"
+             */
+            if ($browserQuantifier <= 1 && strlen($browserLanguage) > 2) {
+                $browserQuantifier = $this->getQuantifier(
+                    'browserLanguage',
+                    $configuration->getBrowserLanguages(),
+                    substr($browserLanguage, 0, 2)
+                );
+            }
+
             $regionQuantifier = $this->getQuantifier('countryBasedOnIp', $configuration->getCountries(), $countryCode);
             $domainQuantifier = $this->getQuantifier('domain', $configuration->getDomains(), $domain);
             $configuration->setQuantifier($browserQuantifier * $regionQuantifier * $domainQuantifier);
@@ -107,41 +110,6 @@ class ConfigurationSet
             }
         }
         return $quantifier;
-    }
-
-    /**
-     * Calculate the quantifier and give the currently used language a special treatment if the browserLanguage
-     * "partialOrFullMatchOnSameLanguageUid" quantifier is defined. This avoids redirecting a user with "en" as
-     * browser language that is visiting the web page corresponding to "en-gb".
-     *
-     * @param \In2code\Ipandlanguageredirect\Domain\Model\Configuration $configuration Whole configuration.
-     * @param string $givenValue - e.g. "*" or "de"
-     * @param int $currentLanguage The current language used by the page visitor.
-     * @return int
-     */
-    protected function getLanguageQuantifier(Configuration $configuration, string $givenValue, $currentLanguage = -2): int
-    {
-        /** @noinspection TypeUnsafeComparisonInspection */
-        if ($this->partialOrFullMatchOnSameLanguageUid
-            && $configuration->getLanguageParameter() == $currentLanguage
-        ) {
-            $matches = array_filter(
-                $configuration->getBrowserLanguages(),
-                function ($browserLanguage) use ($givenValue) {
-                    /*
-                     * Given language ISO code matches fully or partially only against the configuration of the current
-                     * used languageUid.
-                     */
-                    return strpos($browserLanguage, $givenValue) !== false;
-                }
-            );
-
-            if (count($matches) > 0) {
-                return $this->partialOrFullMatchOnSameLanguageUid;
-            }
-        }
-
-        return $this->getQuantifier('browserLanguage', $configuration->getBrowserLanguages(), $givenValue);
     }
 
     /**
